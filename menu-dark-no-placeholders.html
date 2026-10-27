@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bakstr: Ресторан</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --card: #1e1e1e;
+            --text: #ffffff;
+            --accent: #ff4757;
+            --subtext: #a4a4a4;
+            --neon: #ff6b6b;
+            --guest: #00cec9;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 12px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        /* Цветное название-вывеска */
+        .logo {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(255, 107, 107, 0.6);
+            color: var(--neon);
+        }
+        h2, h3 { margin-top: 0; }
+        .role-select {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, filter 0.2s;
+        }
+        button:active { transform: scale(0.98); }
+        .btn-guest { background-color: var(--guest); color: #000; }
+        .btn-cook { background-color: var(--accent); color: white; }
+        .hidden { display: none; }
+        /* Карточка блюда без картинок */
+        .dish-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+        .dish-icon {
+            font-size: 1.8rem;
+            flex-shrink: 0;
+        }
+        .dish-info h4 { margin: 0 0 6px 0; font-size: 1rem; }
+        .dish-price { color: var(--neon); font-weight: bold; }
+        .dish-recipe { color: var(--subtext); font-size: 0.85rem; line-height: 1.3; margin-bottom: 12px; }
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+        }
+        .order-item {
+            background: #252525;
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px dashed #444;
+        }
+        input[type="password"] {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid #333;
+            background: #2a2a2a;
+            color: white;
+            text-align: center;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        .status-msg {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 600;
+        }
+        .status-ok { background: #0f3434; color: #00d295; }
+        .status-error { background: #3b2f2f; color: #ff7675; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="logo">Bakstr</div>
+
+    <div class="role-select">
+        <button class="btn-guest" onclick="showCustomerView()">Я посетитель</button>
+        <button class="btn-cook" onclick="showCookView()">Я повар</button>
+    </div>
+
+    <div id="cook-password-screen" class="hidden" style="text-align:center;">
+        <h3 style="color:var(--text)">Вход повара</h3>
+        <input type="password" id="cookPassword" placeholder="Пароль">
+        <br><br>
+        <button class="btn-cook" style="width:100%" onclick="checkCookPassword()">Войти</button>
+    </div>
+
+    <div id="customer-view" class="hidden">
+        <h2>Меню</h2>
+        <div id="menu"></div>
+
+        <div style="background:var(--card); padding:16px; border-radius:16px; box-shadow:0 4px 16px rgba(0,0,0,0.3); margin-top:16px;">
+            <h3>Ваш заказ</h3>
+            <div id="cart"></div>
+            <button class="btn-cook" style="width:100%; margin-top:12px;" onclick="sendOrder()">Отправить заказ</button>
+            <p id="order-status" class="status-msg hidden"></p>
+        </div>
+    </div>
+
+    <div id="cook-view" class="hidden">
+        <h2>Заказы</h2>
+        <div id="cook-orders"></div>
+    </div>
+</div>
+
+<script>
+    const menu = [
+        { id: 1, name: "Бутерброд с сыром", price: 120, recipe: "Намажь хлеб маслом, сверху положи ломтик сыра.", icon: "🥪" },
+        { id: 2, name: "Омлет из 2 яиц", price: 150, recipe: "Взбей 2 яйца с ложкой молока, вылей на тёплую сковороду, готовь под крышкой 5 минут.", icon: "🍳" },
+        { id: 3, name: "Банан в йогурте", price: 90, recipe: "Очисти банан, нарежь кружочками, полей йогуртом.", icon: "🍌" },
+        { id: 4, name: "Тост с мёдом", price: 110, recipe: "Поджарь хлеб в тостере, намажь мёдом.", icon: "🍞" },
+        { id: 5, name: "Салат из яблока и йогурта", price: 130, recipe: "Нарежь яблоко кубиками, смешай с йогуртом.", icon: "🍏" }
+    ];
+
+    let cart = [];
+    let orders = [];
+
+    const socket = new WebSocket('wss://echo.websocket.org');
+
+    socket.onopen = () => console.log('WebSocket подключён');
+    socket.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'order') {
+                orders.push(data);
+                if (!document.getElementById('cook-view').classList.contains('hidden')) {
+                    renderCookOrders();
+                }
+            } else if (data.type === 'ready') {
+                const status = document.getElementById('order-status');
+                status.textContent = `Заказ №${data.orderId} готов! 🎉`;
+                status.className = 'status-msg status-ok';
+                status.classList.remove('hidden');
+            }
+        } catch (e) {
+            console.error('Ошибка парсинга', e);
+        }
+    };
+
+    function showCustomerView() {
+        document.getElementById('customer-view').classList.remove('hidden');
+        document.getElementById('cook-view').classList.add('hidden');
+        document.getElementById('cook-password-screen').classList.add('hidden');
+        renderMenu();
+    }
+
+    function showCookView() {
+        document.getElementById('customer-view').classList.add('hidden');
+        document.getElementById('cook-view').classList.add('hidden');
+        document.getElementById('cook-password-screen').classList.remove('hidden');
+    }
+
+    function checkCookPassword() {
+        const pwd = document.getElementById('cookPassword').value;
+        if (pwd === '9798') {
+            document.getElementById('cook-password-screen').classList.add('hidden');
+            document.getElementById('cook-view').classList.remove('hidden');
+            renderCookOrders();
+        } else {
+            alert('Неверный пароль');
+        }
+    }
+
+    function renderMenu() {
+        const menuEl = document.getElementById('menu');
+        menuEl.innerHTML = '';
+        menu.forEach(dish => {
+            const div = document.createElement('div');
+            div.className = 'dish-card';
+            div.innerHTML = `
+                <div class="dish-icon">${dish.icon}</div>
+                <div class="dish-info">
+                    <h4>${dish.name}</h4>
+                    <div class="dish-price">${dish.price} ₽</div>
+                    <p class="dish-recipe">${dish.recipe}</p>
+                    <button class="btn-guest" style="padding:6px 12px; font-size:0.9rem;" onclick="addToCart(${dish.id})">В заказ</button>
+                </div>
+            `;
+            menuEl.appendChild(div);
+        });
+    }
+
+    function addToCart(id) {
+        const dish = menu.find(d => d.id === id);
+        cart.push(dish);
+        renderCart();
+    }
+
+    function renderCart() {
+        const cartEl = document.getElementById('cart');
+        cartEl.innerHTML = '';
+        if (cart.length === 0) {
+            cartEl.textContent = 'Корзина пуста';
+            return;
+        }
+        cart.forEach((dish, idx) => {
+            const div = document.createElement('div');
+            div.className = 'cart-item';
+            div.innerHTML = `
+                <span>${dish.icon} ${dish.name}</span>
+                <span style="color:var(--neon)">${dish.price} ₽</span>
+            `;
+            const removeBtn = document.createElement('button');
+            removeBtn.innerHTML = '✕';
+            removeBtn.style = 'background:none;border:none;color:#666;cursor:pointer;font-size:1.2rem;';
+            removeBtn.onclick = () => {
+                cart.splice(idx, 1);
+                renderCart();
+            };
+            div.appendChild(removeBtn);
+            cartEl.appendChild(div);
+        });
+    }
+
+    function sendOrder() {
+        if (cart.length === 0) return alert('Корзина пуста');
+        const order = {
+            type: 'order',
+            orderId: Date.now(),
+            items: cart.map(d => ({ name: d.name, price: d.price, recipe: d.recipe, icon: d.icon }))
+        };
+        socket.send(JSON.stringify(order));
+        const status = document.getElementById('order-status');
+        status.textContent = 'Заказ отправлен повару! ✅';
+        status.className = 'status-msg status-ok';
+        status.classList.remove('hidden');
+        cart = [];
+        renderCart();
+    }
+
+    function renderCookOrders() {
+        const ordersEl = document.getElementById('cook-orders');
+        ordersEl.innerHTML = '';
+        if (orders.length === 0) {
+            ordersEl.innerHTML = '<p style="text-align:center;color:var(--subtext)">Заказов пока нет</p>';
+            return;
+        }
+        orders.forEach(order => {
+            const div = document.createElement('div');
+            div.className = 'order-item';
+            const itemsHtml = order.items.map(i => `• ${i.icon} ${i.name} (${i.price} ₽)<br><small style="color:var(--subtext)">${i.recipe}</small>`).join('<br>');
+            div.innerHTML = `
+                <b>Заказ №${order.orderId}</b>
+                <p style="margin:8px 0 12px 0; line-height:1.4;">${itemsHtml}</p>
+                <button class="btn-cook" onclick="markReady(${order.orderId})">Заказ готов</button>
+            `;
+            ordersEl.prepend(div);
+        });
+    }
+
+    function markReady(orderId) {
+        const msg = JSON.stringify({ type: 'ready', orderId });
+        socket.send(msg);
+        alert(`Заказ №${orderId} помечен как готовый.`);
+    }
+</script>
+</body>
+</html>
